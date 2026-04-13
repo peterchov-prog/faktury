@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faktúry — Správca</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F0E8;
+    --surface: #FDFAF4;
+    --surface2: #EDE8DC;
+    --border: #D4C9B0;
+    --text: #1C1A15;
+    --text2: #6B6455;
+    --accent: #C4440A;
+    --accent2: #E8A020;
+    --green: #2D6A4F;
+    --red: #C4440A;
+    --yellow: #B87A00;
+    --shadow: 0 2px 12px rgba(28,26,21,0.10);
+    --shadow-lg: 0 8px 32px rgba(28,26,21,0.15);
+    --radius: 4px;
+    --radius-lg: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--text);
+    color: var(--bg);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .badge-due {
+    background: var(--accent);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .badge-due:hover { opacity: 0.85; }
+  .badge-due.hidden { display: none; }
+
+  /* ── MAIN LAYOUT ── */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  /* ── STATS ROW ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .stat-card.total::before { background: var(--text); }
+  .stat-card.unpaid::before { background: var(--accent2); }
+  .stat-card.overdue::before { background: var(--accent); }
+  .stat-card.paid::before { background: var(--green); }
+
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--text);
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 2px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    padding: 9px 12px 9px 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-wrap input:focus { border-color: var(--accent); }
+
+  .search-icon {
+    position: absolute;
+    left: 10px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text2);
+    font-size: 14px;
+  }
+
+  select, .btn {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary:hover { background: #A83808; border-color: #A83808; }
+
+  .btn:hover { background: var(--surface2); }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  thead th:hover { color: var(--text); }
+
+  thead th .sort-icon { margin-left: 4px; opacity: 0.4; }
+  thead th.active .sort-icon { opacity: 1; color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg); }
+
+  td {
+    padding: 11px 14px;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  .td-partner {
+    font-weight: 500;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .td-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    text-align: right;
+    font-weight: 500;
+  }
+
+  .td-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .td-due { font-family: 'DM Mono', monospace; font-size: 12px; }
+  .td-due.overdue { color: var(--red); font-weight: 600; }
+  .td-due.due-soon { color: var(--yellow); font-weight: 600; }
+  .td-due.ok { color: var(--text2); }
+
+  /* Status badge */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .status:hover { opacity: 0.75; }
+  .status.paid { background: #D4EDDA; color: #1A5C35; }
+  .status.unpaid { background: #FFF0D9; color: #8A5800; }
+  .status.overdue { background: #FDDDD4; color: #8A2200; }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status.paid .status-dot { background: var(--green); }
+  .status.unpaid .status-dot { background: var(--accent2); }
+  .status.overdue .status-dot { background: var(--accent); }
+
+  .td-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .icon-btn {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    color: var(--text2);
+    text-decoration: none;
+  }
+  .icon-btn:hover { background: var(--surface2); color: var(--text); }
+  .icon-btn.danger:hover { background: #FDDDD4; color: var(--accent); border-color: #F0B0A0; }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+  }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty h3 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); margin-bottom: 6px; }
+  .empty p { font-size: 13px; line-height: 1.6; }
+
+  /* ── MODAL BACKDROP ── */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(28,26,21,0.55);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalIn 0.2s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+  }
+
+  .modal-close {
+    width: 32px; height: 32px;
+    border: none; background: none;
+    font-size: 18px; cursor: pointer;
+    color: var(--text2);
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+  }
+  .modal-close:hover { background: var(--surface2); color: var(--text); }
+
+  .modal-body { padding: 20px 24px; }
+
+  .form-group { margin-bottom: 16px; }
+
+  .form-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent); background: white; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .modal-footer {
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: #FDF5F0; }
+  .upload-zone-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-zone p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .upload-zone strong { color: var(--accent); }
+
+  /* ── AI PROCESSING ── */
+  .ai-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+  .ai-status.processing { background: #EDF4FF; color: #1A4FA0; border: 1px solid #BFCFE8; }
+  .ai-status.success { background: #D4EDDA; color: #1A5C35; border: 1px solid #A8D4B8; }
+  .ai-status.error { background: #FDDDD4; color: #8A2200; border: 1px solid #F0B0A0; }
+  .ai-status.hidden { display: none; }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── DUE ALERT PANEL ── */
+  .due-panel {
+    display: none;
+    background: #FFF8F0;
+    border: 1px solid #F0C070;
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .due-panel.open { display: block; }
+  .due-panel-title {
+    font-weight: 600;
+    color: var(--yellow);
+    font-size: 13px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .due-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid #F0C070;
+    font-size: 12px;
+  }
+  .due-item:last-child { border-bottom: none; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--text);
+    color: var(--bg);
+    padding: 12px 18px;
+    border-radius: var(--radius-lg);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .toast.show { transform: none; opacity: 1; }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--accent); }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btn {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    color: var(--text);
+  }
+  .page-btn:hover { background: var(--surface2); }
+  .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 700px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .hide-mobile { display: none; }
+    .td-partner { max-width: 100px; }
+  }
+  @media (max-width: 480px) {
+    header { padding: 0 14px; }
+    .container { padding: 16px 12px; }
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-value { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🪵</div>
+    Faktúry
+  </div>
+  <div class="header-right">
+    <div class="badge-due hidden" id="badgeDue" onclick="toggleDuePanel()">
+      ⚠ <span id="badgeCount">0</span> splatné
+    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      + Pridať faktúru
+    </button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Due alerts panel -->
+  <div class="due-panel" id="duePanel">
+    <div class="due-panel-title">⚠️ Faktúry so splatnosťou do 1 dňa</div>
+    <div id="duePanelList"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card total">
+      <div class="stat-label">Celkom faktúr</div>
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-sub" id="statTotalAmt">0,00 €</div>
+    </div>
+    <div class="stat-card unpaid">
+      <div class="stat-label">Nezaplatené</div>
+      <div class="stat-value" id="statUnpaid">0</div>
+      <div class="stat-sub" id="statUnpaidAmt">0,00 €</div>
+    </div>
+    <div class="stat-card overdue">
+      <div class="stat-label">Po splatnosti</div>
+      <div class="stat-value" id="statOverdue">0</div>
+      <div class="stat-sub" id="statOverdueAmt">0,00 €</div>
+    </div>
+    <div class="stat-card paid">
+      <div class="stat-label">Zaplatené</div>
+      <div class="stat-value" id="statPaid">0</div>
+      <div class="stat-sub" id="statPaidAmt">0,00 €</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Hľadať podľa partnera, čísla faktúry..." oninput="renderTable()">
+    </div>
+    <select id="filterStatus" onchange="renderTable()">
+      <option value="">Všetky stavy</option>
+      <option value="unpaid">Nezaplatené</option>
+      <option value="paid">Zaplatené</option>
+      <option value="overdue">Po splatnosti</option>
+    </select>
+    <select id="filterYear" onchange="renderTable()">
+      <option value="">Všetky roky</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('invoiceNumber')">Číslo <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('partner')">Partner <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('invoiceDate')" class="hide-mobile">Dátum <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('dueDate')">Splatnosť <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('amount')" style="text-align:right">Suma <span class="sort-icon">↕</span></th>
+          <th onclick="sortBy('status')">Stav <span class="sort-icon">↕</span></th>
+          <th>Akcie</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="emptyState" class="empty" style="display:none">
+      <div class="empty-icon">📄</div>
+      <h3>Žiadne faktúry</h3>
+      <p>Pridajte prvú faktúru tlačidlom vyššie,<br>alebo nahrajte PDF súbor.</p>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Nová faktúra</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Upload zone -->
+      <div id="uploadSection">
+        <div class="upload-zone" id="uploadZone"
+             onclick="document.getElementById('pdfInput').click()"
+             ondragover="e=event;e.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleDrop(event)">
+          <div class="upload-zone-icon">📎</div>
+          <p><strong>Kliknite alebo pretiahnite PDF</strong><br>Faktúra bude automaticky spracovaná pomocou AI</p>
+        </div>
+        <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="handleFileSelect(event)">
+      </div>
+
+      <div class="ai-status hidden" id="aiStatus">
+        <div class="spinner"></div>
+        <span id="aiStatusText">Spracovávam PDF pomocou AI...</span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Číslo faktúry</label>
+          <input class="form-input" type="text" id="fInvoiceNumber" placeholder="2024/001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Partner / Dodávateľ</label>
+          <input class="form-input" type="text" id="fPartner" placeholder="Názov firmy">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Dátum faktúry</label>
+          <input class="form-input" type="date" id="fInvoiceDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dátum splatnosti</label>
+          <input class="form-input" type="date" id="fDueDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Suma (€)</label>
+          <input class="form-input" type="number" id="fAmount" placeholder="0.00" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stav</label>
+          <select class="form-input" id="fStatus">
+            <option value="unpaid">Nezaplatená</option>
+            <option value="paid">Zaplatená</option>
+            <option value="overdue">Po splatnosti</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">PDF súbor (link)</label>
+        <input class="form-input" type="text" id="fPdfUrl" placeholder="https://drive.google.com/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Poznámka</label>
+        <input class="form-input" type="text" id="fNote" placeholder="Voliteľná poznámka">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Zrušiť</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">💾 Uložiť faktúru</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+let invoices = [];
+let editingId = null;
+let currentSort = { field: 'dueDate', dir: 'asc' };
+let currentPage = 1;
+const PAGE_SIZE = 15;
+let currentPdfBase64 = null;
+let currentPdfName = null;
+
+// ── STORAGE ───────────────────────────────────────────────
+async function saveToStorage() {
+  try {
+    await window.storage.set('invoices', JSON.stringify(invoices));
+  } catch(e) {
+    localStorage.setItem('invoices_backup', JSON.stringify(invoices));
+  }
+}
+
+async function loadFromStorage() {
+  try {
+    const res = await window.storage.get('invoices');
+    if (res && res.value) invoices = JSON.parse(res.value);
+  } catch(e) {
+    const backup = localStorage.getItem('invoices_backup');
+    if (backup) invoices = JSON.parse(backup);
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadFromStorage();
+  updateStats();
+  renderTable();
+  populateYearFilter();
+  checkDueAlerts();
+});
+
+// ── STATS ─────────────────────────────────────────────────
+function updateStats() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  let total=0, unpaid=0, overdue=0, paid=0;
+  let totalAmt=0, unpaidAmt=0, overdueAmt=0, paidAmt=0;
+
+  invoices.forEach(inv => {
+    const due = new Date(inv.dueDate);
+    const status = getEffectiveStatus(inv);
+    total++;
+    totalAmt += inv.amount || 0;
+    if (status === 'paid')    { paid++;    paidAmt    += inv.amount || 0; }
+    if (status === 'unpaid')  { unpaid++;  unpaidAmt  += inv.amount || 0; }
+    if (status === 'overdue') { overdue++; overdueAmt += inv.amount || 0; }
+  });
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statUnpaid').textContent = unpaid;
+  document.getElementById('statOverdue').textContent = overdue;
+  document.getElementById('statPaid').textContent = paid;
+  document.getElementById('statTotalAmt').textContent = fmt(totalAmt);
+  document.getElementById('statUnpaidAmt').textContent = fmt(unpaidAmt);
+  document.getElementById('statOverdueAmt').textContent = fmt(overdueAmt);
+  document.getElementById('statPaidAmt').textContent = fmt(paidAmt);
+}
+
+function getEffectiveStatus(inv) {
+  if (inv.status === 'paid') return 'paid';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(inv.dueDate);
+  if (due < today) return 'overdue';
+  return 'unpaid';
+}
+
+function fmt(n) {
+  return n.toLocaleString('sk-SK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+function fmtDate(d) {
+  if (!d) return '–';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('sk-SK');
+}
+
+// ── DUE ALERTS ────────────────────────────────────────────
+function checkDueAlerts() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+
+  const dueSoon = invoices.filter(inv => {
+    if (inv.status === 'paid') return false;
+    const due = new Date(inv.dueDate); due.setHours(0,0,0,0);
+    return due.getTime() === tomorrow.getTime() || due.getTime() === today.getTime();
+  });
+
+  const badge = document.getElementById('badgeDue');
+  document.getElementById('badgeCount').textContent = dueSoon.length;
+  badge.classList.toggle('hidden', dueSoon.length === 0);
+
+  const list = document.getElementById('duePanelList');
+  list.innerHTML = dueSoon.map(inv => `
+    <div class="due-item">
+      <span><strong>${inv.partner}</strong> — ${inv.invoiceNumber || '–'}</span>
+      <span>${fmt(inv.amount || 0)} | splatnosť: ${fmtDate(inv.dueDate)}</span>
+    </div>
+  `).join('');
+}
+
+function toggleDuePanel() {
+  document.getElementById('duePanel').classList.toggle('open');
+}
+
+// ── YEAR FILTER ───────────────────────────────────────────
+function populateYearFilter() {
+  const years = [...new Set(invoices.map(i => i.invoiceDate ? new Date(i.invoiceDate).getFullYear() : null).filter(Boolean))].sort((a,b) => b-a);
+  const sel = document.getElementById('filterYear');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Všetky roky</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+  sel.value = cur;
+}
+
+// ── TABLE RENDER ──────────────────────────────────────────
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const statusF = document.getElementById('filterStatus').value;
+  const yearF = document.getElementById('filterYear').value;
+
+  let data = invoices.filter(inv => {
+    const eff = getEffectiveStatus(inv);
+    if (statusF && eff !== statusF) return false;
+    if (yearF && inv.invoiceDate && new Date(inv.invoiceDate).getFullYear() != yearF) return false;
+    if (search) {
+      const haystack = `${inv.partner} ${inv.invoiceNumber} ${inv.note}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  data.sort((a, b) => {
+    let av = a[currentSort.field] || '';
+    let bv = b[currentSort.field] || '';
+    if (currentSort.field === 'amount') { av = a.amount||0; bv = b.amount||0; }
+    if (av < bv) return currentSort.dir === 'asc' ? -1 : 1;
+    if (av > bv) return currentSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const paged = data.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+
+  const tbody = document.getElementById('tableBody');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+
+  if (data.length === 0) {
+    tbody.innerHTML = '';
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('emptyState').style.display = 'none';
+
+  tbody.innerHTML = paged.map(inv => {
+    const eff = getEffectiveStatus(inv);
+    const due = new Date(inv.dueDate); due.setHours(0,0,0,0);
+    let dueClass = 'ok';
+    if (eff === 'overdue') dueClass = 'overdue';
+    else if (due.getTime() === tomorrow.getTime()) dueClass = 'due-soon';
+
+    const statusLabel = { paid: 'Zaplatená', unpaid: 'Nezaplatená', overdue: 'Po splatnosti' }[eff];
+
+    return `<tr>
+      <td><span style="font-family:'DM Mono',monospace;font-size:12px">${inv.invoiceNumber || '–'}</span></td>
+      <td class="td-partner" title="${inv.partner}">${inv.partner}</td>
+      <td class="td-date hide-mobile">${fmtDate(inv.invoiceDate)}</td>
+      <td class="td-due ${dueClass}">${fmtDate(inv.dueDate)}${dueClass==='due-soon'?' ⚠':''}</td>
+      <td class="td-amount">${fmt(inv.amount||0)}</td>
+      <td>
+        <span class="status ${eff}" onclick="cycleStatus('${inv.id}')" title="Kliknite pre zmenu stavu">
+          <span class="status-dot"></span>${statusLabel}
+        </span>
+      </td>
+      <td>
+        <div class="td-actions">
+          ${inv.pdfUrl ? `<a class="icon-btn" href="${inv.pdfUrl}" target="_blank" title="Otvoriť PDF">📄</a>` : `<span class="icon-btn" style="opacity:0.3;cursor:default" title="Žiadny PDF súbor">📄</span>`}
+          <button class="icon-btn" onclick="openEditModal('${inv.id}')" title="Upraviť">✏️</button>
+          <button class="icon-btn danger" onclick="deleteInvoice('${inv.id}')" title="Vymazať">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  renderPagination(data.length, totalPages);
+
+  // Update sort indicators
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('active'));
+}
+
+function renderPagination(total, totalPages) {
+  const pg = document.getElementById('pagination');
+  if (totalPages <= 1) { pg.innerHTML = `<span>${total} záznamov</span>`; return; }
+
+  let btns = '';
+  for (let i = 1; i <= totalPages; i++) {
+    btns += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  pg.innerHTML = `
+    <span>${total} záznamov</span>
+    <div class="page-btns">
+      <button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>
+      ${btns}
+      <button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>
+    </div>`;
+}
+
+function goPage(p) { currentPage = p; renderTable(); }
+
+// ── SORT ──────────────────────────────────────────────────
+function sortBy(field) {
+  if (currentSort.field === field) {
+    currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSort.field = field;
+    currentSort.dir = 'asc';
+  }
+  currentPage = 1;
+  renderTable();
+}
+
+// ── STATUS CYCLE ──────────────────────────────────────────
+async function cycleStatus(id) {
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) return;
+  const eff = getEffectiveStatus(inv);
+  inv.status = eff === 'paid' ? 'unpaid' : 'paid';
+  await saveToStorage();
+  updateStats();
+  renderTable();
+  checkDueAlerts();
+  showToast(inv.status === 'paid' ? '✅ Označená ako zaplatená' : '↩ Označená ako nezaplatená', inv.status === 'paid' ? 'success' : '');
+}
+
+// ── DELETE ────────────────────────────────────────────────
+async function deleteInvoice(id) {
+  if (!confirm('Skutočne vymazať túto faktúru?')) return;
+  invoices = invoices.filter(i => i.id !== id);
+  await saveToStorage();
+  updateStats();
+  renderTable();
+  populateYearFilter();
+  checkDueAlerts();
+  showToast('🗑 Faktúra vymazaná');
+}
+
+// ── MODAL ─────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  currentPdfBase64 = null;
+  currentPdfName = null;
+  document.getElementById('modalTitle').textContent = 'Nová faktúra';
+  clearForm();
+  document.getElementById('uploadSection').style.display = 'block';
+  document.getElementById('aiStatus').className = 'ai-status hidden';
+  document.getElementById('modal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Upraviť faktúru';
+  document.getElementById('fInvoiceNumber').value = inv.invoiceNumber || '';
+  document.getElementById('fPartner').value = inv.partner || '';
+  document.getElementById('fInvoiceDate').value = inv.invoiceDate || '';
+  document.getElementById('fDueDate').value = inv.dueDate || '';
+  document.getElementById('fAmount').value = inv.amount || '';
+  document.getElementById('fStatus').value = inv.status || 'unpaid';
+  document.getElementById('fPdfUrl').value = inv.pdfUrl || '';
+  document.getElementById('fNote').value = inv.note || '';
+  document.getElementById('uploadSection').style.display = 'none';
+  document.getElementById('aiStatus').className = 'ai-status hidden';
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  editingId = null;
+  currentPdfBase64 = null;
+}
+
+function clearForm() {
+  ['fInvoiceNumber','fPartner','fInvoiceDate','fDueDate','fAmount','fPdfUrl','fNote'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('fStatus').value = 'unpaid';
+  document.getElementById('pdfInput').value = '';
+  document.getElementById('uploadZone').innerHTML = `
+    <div class="upload-zone-icon">📎</div>
+    <p><strong>Kliknite alebo pretiahnite PDF</strong><br>Faktúra bude automaticky spracovaná pomocou AI</p>`;
+}
+
+// ── FILE HANDLING ─────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') processFile(file);
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  currentPdfName = file.name;
+  document.getElementById('uploadZone').innerHTML = `
+    <div class="upload-zone-icon">✅</div>
+    <p><strong>${file.name}</strong><br>Spracovávam pomocou AI...</p>`;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    currentPdfBase64 = e.target.result.split(',')[1];
+    await extractWithAI(currentPdfBase64);
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── AI EXTRACTION ─────────────────────────────────────────
+async function extractWithAI(base64) {
+  const statusEl = document.getElementById('aiStatus');
+  statusEl.className = 'ai-status processing';
+  statusEl.innerHTML = '<div class="spinner"></div><span>AI číta faktúru (slovenčina)...</span>';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+            },
+            {
+              type: 'text',
+              text: `Toto je faktúra (pravdepodobne v slovenčine). Extrahuj tieto údaje a odpovedaj IBA platným JSON objektom bez akéhokoľvek iného textu:
+{
+  "invoiceNumber": "číslo faktúry alebo null",
+  "partner": "názov dodávateľa/vystavovateľa faktúry",
+  "invoiceDate": "YYYY-MM-DD alebo null",
+  "dueDate": "YYYY-MM-DD alebo null",
+  "amount": číslo (celková suma s DPH) alebo null
+}
+Ak niečo nenájdeš, použi null. Dátum splatnosti hľadaj ako "splatnosť", "dátum splatnosti", "uhradiť do". Suma má byť celková suma na úhradu vrátane DPH.`
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+
+    let parsed;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('Nepodarilo sa spracovať odpoveď AI');
+    }
+
+    // Fill form
+    if (parsed.invoiceNumber) document.getElementById('fInvoiceNumber').value = parsed.invoiceNumber;
+    if (parsed.partner) document.getElementById('fPartner').value = parsed.partner;
+    if (parsed.invoiceDate) document.getElementById('fInvoiceDate').value = parsed.invoiceDate;
+    if (parsed.dueDate) document.getElementById('fDueDate').value = parsed.dueDate;
+    if (parsed.amount) document.getElementById('fAmount').value = parsed.amount;
+
+    statusEl.className = 'ai-status success';
+    statusEl.innerHTML = '✅ <span>AI úspešne extrahovala údaje — skontrolujte a uložte</span>';
+
+  } catch(err) {
+    statusEl.className = 'ai-status error';
+    statusEl.innerHTML = `⚠ <span>AI extrakcia zlyhala: ${err.message}. Vyplňte manuálne.</span>`;
+  }
+}
+
+// ── SAVE ──────────────────────────────────────────────────
+async function saveInvoice() {
+  const partner = document.getElementById('fPartner').value.trim();
+  const dueDate = document.getElementById('fDueDate').value;
+  if (!partner) { showToast('⚠ Zadajte názov partnera', 'error'); return; }
+  if (!dueDate) { showToast('⚠ Zadajte dátum splatnosti', 'error'); return; }
+
+  const inv = {
+    id: editingId || crypto.randomUUID(),
+    invoiceNumber: document.getElementById('fInvoiceNumber').value.trim(),
+    partner,
+    invoiceDate: document.getElementById('fInvoiceDate').value,
+    dueDate,
+    amount: parseFloat(document.getElementById('fAmount').value) || 0,
+    status: document.getElementById('fStatus').value,
+    pdfUrl: document.getElementById('fPdfUrl').value.trim(),
+    note: document.getElementById('fNote').value.trim(),
+    createdAt: editingId ? (invoices.find(i=>i.id===editingId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+  };
+
+  if (editingId) {
+    const idx = invoices.findIndex(i => i.id === editingId);
+    invoices[idx] = inv;
+  } else {
+    invoices.unshift(inv);
+  }
+
+  await saveToStorage();
+  updateStats();
+  renderTable();
+  populateYearFilter();
+  checkDueAlerts();
+  closeModal();
+  showToast(editingId ? '✅ Faktúra aktualizovaná' : '✅ Faktúra uložená', 'success');
+
+  // Create Google Calendar reminder (day before due)
+  if (!editingId) scheduleCalendarReminder(inv);
+}
+
+// ── CALENDAR REMINDER ─────────────────────────────────────
+async function scheduleCalendarReminder(inv) {
+  if (!inv.dueDate) return;
+
+  // Calculate reminder date = 1 day before due date
+  const dueDate = new Date(inv.dueDate);
+  const reminderDate = new Date(dueDate);
+  reminderDate.setDate(dueDate.getDate() - 1);
+
+  const dateStr = reminderDate.toISOString().split('T')[0];
+  const dueDateStr = dueDate.toLocaleDateString('sk-SK');
+  const amountStr = inv.amount ? inv.amount.toLocaleString('sk-SK', { minimumFractionDigits: 2 }) + ' €' : '';
+
+  const eventTitle = `⚠ Splatnosť faktúry: ${inv.partner}`;
+  const eventDescription = [
+    `Faktúra č.: ${inv.invoiceNumber || '–'}`,
+    `Dodávateľ: ${inv.partner}`,
+    `Suma: ${amountStr}`,
+    `Dátum splatnosti: ${dueDateStr}`,
+    inv.pdfUrl ? `PDF: ${inv.pdfUrl}` : '',
+    inv.note ? `Poznámka: ${inv.note}` : '',
+  ].filter(Boolean).join('\n');
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        mcp_servers: [
+          { type: 'url', url: 'https://gcal.mcp.claude.com/mcp', name: 'google-calendar' }
+        ],
+        messages: [{
+          role: 'user',
+          content: `Create an all-day Google Calendar event with these exact details:
+- Title: "${eventTitle}"
+- Date: ${dateStr} (all-day event)
+- Description: "${eventDescription}"
+- Calendar: peterchov@gmail.com
+
+Respond with only "OK" when done, or "ERROR: reason" if it failed.`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
+
+    if (text.includes('ERROR')) {
+      console.warn('Calendar event failed:', text);
+      showToast('⚠ Faktúra uložená, kalendár zlyhal', 'error');
+    } else {
+      showToast('📅 Pripomienka pridaná do kalendára', 'success');
+    }
+  } catch(err) {
+    console.warn('Calendar reminder error:', err.message);
+    // Don't block the invoice save if calendar fails
+  }
+}
+
+// ── WEBHOOK RECEIVER (for Google Apps Script) ─────────────
+// This endpoint receives data from the Google Apps Script
+async function receiveWebhookData(payload) {
+  const inv = {
+    id: crypto.randomUUID(),
+    invoiceNumber: payload.invoiceNumber || '',
+    partner: payload.partner || payload.emailFrom || 'Neznámy',
+    invoiceDate: payload.invoiceDate || new Date().toISOString().split('T')[0],
+    dueDate: payload.dueDate || '',
+    amount: parseFloat(payload.amount) || 0,
+    status: 'unpaid',
+    pdfUrl: payload.driveFileUrl || '',
+    note: `Import z emailu: ${payload.emailSubject || ''}`,
+    createdAt: new Date().toISOString(),
+  };
+  invoices.unshift(inv);
+  await saveToStorage();
+  updateStats();
+  renderTable();
+  populateYearFilter();
+  checkDueAlerts();
+}
+
+// Expose for potential webhook integration
+window.receiveInvoice = receiveWebhookData;
+
+// ── TOAST ─────────────────────────────────────────────────
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── CLOSE MODAL ON BACKDROP CLICK ────────────────────────
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
